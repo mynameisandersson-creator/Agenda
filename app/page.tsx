@@ -14,8 +14,19 @@ import { es } from 'date-fns/locale';
 import type { FormEvent, InputHTMLAttributes, ReactNode, TextareaHTMLAttributes } from 'react';
 import { useEffect, useMemo, useState } from 'react';
 import { BarChart, DonutChart, LineChart } from '@/components/Charts';
-import { createEvent, createTag, deleteEvent, getEvents, getReports, getTags, updateEvent } from '@/lib/api';
-import type { AgendaEvent, Category, EventStatus, Priority, Reports, Tag } from '@/lib/types';
+import {
+  createChatKnowledge,
+  createEvent,
+  createTag,
+  deleteEvent,
+  getChatKnowledge,
+  getEvents,
+  getReports,
+  getTags,
+  sendChatMessage,
+  updateEvent
+} from '@/lib/api';
+import type { AgendaEvent, Category, ChatKnowledge, EventStatus, Priority, Reports, Tag } from '@/lib/types';
 
 const categoryLabels: Record<Category, string> = {
   WORK: 'Trabajo',
@@ -99,6 +110,11 @@ export default function Page() {
   const [now, setNow] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<AgendaEvent | null>(null);
+  const [knowledge, setKnowledge] = useState<ChatKnowledge[]>([]);
+  const [chatQuestion, setChatQuestion] = useState('');
+  const [chatMessages, setChatMessages] = useState([
+    { role: 'bot', text: 'Hola, soy tu asistente de agenda. Pregúntame sobre tus tareas o aliméntame con conocimiento nuevo.' }
+  ]);
 
   const monthStart = startOfMonth(now);
   const monthEnd = endOfMonth(now);
@@ -118,10 +134,11 @@ export default function Page() {
   async function loadData() {
     try {
       setError('');
-      const [eventsData, tagsData, reportsData] = await Promise.all([getEvents(), getTags(), getReports()]);
+      const [eventsData, tagsData, reportsData, knowledgeData] = await Promise.all([getEvents(), getTags(), getReports(), getChatKnowledge()]);
       setEvents(eventsData);
       setTags(tagsData);
       setReports(reportsData);
+      setKnowledge(knowledgeData);
     } catch (loadError) {
       setError('No se pudo conectar con la API. Ejecuta npm run dev y confirma que Express está en el puerto 4000.');
     } finally {
@@ -199,6 +216,37 @@ export default function Page() {
     return tag;
   }
 
+  async function handleChatSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const question = chatQuestion.trim();
+    if (!question) {
+      return;
+    }
+    setChatMessages((messages) => [...messages, { role: 'user', text: question }]);
+    setChatQuestion('');
+    try {
+      const response = await sendChatMessage(question);
+      setChatMessages((messages) => [...messages, { role: 'bot', text: response.answer }]);
+    } catch (chatError) {
+      setChatMessages((messages) => [...messages, { role: 'bot', text: 'No pude responder ahora. Revisa la conexión con la API.' }]);
+    }
+  }
+
+  async function handleKnowledgeSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    const title = correctSpanishText(String(formData.get('title')));
+    const content = correctSpanishText(String(formData.get('content')));
+    try {
+      const createdKnowledge = await createChatKnowledge({ title, content });
+      setKnowledge((items) => [createdKnowledge, ...items]);
+      event.currentTarget.reset();
+      setChatMessages((messages) => [...messages, { role: 'bot', text: `Aprendido: ${createdKnowledge.title}` }]);
+    } catch (knowledgeError) {
+      setError('No se pudo alimentar el chatbot. Revisa que el título y el contenido tengan suficiente información.');
+    }
+  }
+
   return (
     <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       <section className="overflow-hidden rounded-[2rem] bg-slate-950 px-6 py-8 text-white shadow-soft sm:px-10">
@@ -261,29 +309,18 @@ export default function Page() {
                     <span className="text-2xl font-black text-slate-900">{format(day, 'd')}</span>
                     <span className="rounded-full bg-white px-2 py-1 text-[10px] font-bold text-slate-500">{dayEvents.length}</span>
                   </div>
-                  <div className="space-y-2">
-                    {dayEvents.length === 0 && <p className="rounded-2xl border border-dashed border-slate-200 p-2 text-xs text-slate-400">Agregar tarea</p>}
-                    {dayEvents.slice(0, 3).map((event) => (
-                      <span
-                        key={event.id}
-                        role="button"
-                        tabIndex={0}
-                        onClick={(clickEvent) => {
-                          clickEvent.stopPropagation();
-                          openEventModal(event);
-                        }}
-                        onKeyDown={(keyEvent) => {
-                          if (keyEvent.key === 'Enter') {
-                            keyEvent.stopPropagation();
-                            openEventModal(event);
-                          }
-                        }}
-                        className={`block rounded-2xl bg-gradient-to-br ${categoryStyles[event.category]} px-3 py-2 text-xs font-bold text-white shadow`}
-                      >
-                        {format(new Date(event.start), 'HH:mm')} · {event.title}
-                      </span>
-                    ))}
-                    {dayEvents.length > 3 && <p className="text-xs font-bold text-slate-500">+{dayEvents.length - 3} más</p>}
+                  <div className="flex min-h-20 items-center justify-center rounded-3xl border border-dashed border-slate-200 bg-white/70">
+                    {dayEvents.length === 0 ? (
+                      <div className="text-center">
+                        <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-4xl font-black leading-none text-slate-400">−</span>
+                        <p className="mt-2 text-xs font-bold text-slate-400">Sin tareas</p>
+                      </div>
+                    ) : (
+                      <div className="text-center">
+                        <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-blue-600 text-4xl font-black leading-none text-white">+</span>
+                        <p className="mt-2 text-xs font-bold text-blue-700">{dayEvents.length} tarea{dayEvents.length > 1 ? 's' : ''}</p>
+                      </div>
+                    )}
                   </div>
                 </div>
               );
@@ -307,6 +344,48 @@ export default function Page() {
             <p className="mt-4 text-sm text-slate-500">También puedes crear una etiqueta propia desde el modal de detalles.</p>
           </div>
         </aside>
+      </section>
+
+      <section className="mt-8 grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
+        <div className="rounded-[2rem] bg-white p-6 shadow-soft ring-1 ring-slate-200">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.3em] text-blue-600">Chatbot local</p>
+              <h2 className="text-2xl font-black text-slate-900">Asistente que aprende de tu agenda</h2>
+            </div>
+            <Badge>{knowledge.length} módulos aprendidos</Badge>
+          </div>
+          <div className="mt-5 max-h-80 space-y-3 overflow-y-auto rounded-3xl bg-slate-50 p-4">
+            {chatMessages.map((message, index) => (
+              <div key={`${message.role}-${index}`} className={`rounded-3xl px-4 py-3 text-sm leading-6 ${message.role === 'user' ? 'ml-8 bg-blue-600 text-white' : 'mr-8 bg-white text-slate-700 shadow-sm ring-1 ring-slate-100'}`}>
+                {message.text}
+              </div>
+            ))}
+          </div>
+          <form onSubmit={handleChatSubmit} className="mt-4 flex gap-3">
+            <input value={chatQuestion} onChange={(event) => setChatQuestion(event.target.value)} className={inputClass} placeholder="Pregunta algo: ¿qué tareas tengo?, ¿cómo uso etiquetas?" />
+            <button className="rounded-2xl bg-blue-600 px-5 py-3 font-black text-white">Enviar</button>
+          </form>
+        </div>
+
+        <form onSubmit={handleKnowledgeSubmit} className="rounded-[2rem] bg-white p-6 shadow-soft ring-1 ring-slate-200">
+          <p className="text-xs font-black uppercase tracking-[0.3em] text-purple-600">Entrenar chatbot</p>
+          <h2 className="text-2xl font-black text-slate-900">Módulo para alimentar conocimiento</h2>
+          <p className="mt-2 text-sm text-slate-500">Agrega reglas, instrucciones o respuestas. El bot buscará coincidencias y responderá con lo aprendido.</p>
+          <div className="mt-5 space-y-4">
+            <CorrectableInput className={inputClass} name="title" placeholder="Título del conocimiento" required minLength={3} />
+            <CorrectableTextarea className={inputClass} name="content" placeholder="Contenido que el chatbot debe aprender" required minLength={10} rows={5} />
+            <button className="w-full rounded-2xl bg-slate-900 px-5 py-4 font-black text-white">Guardar conocimiento</button>
+          </div>
+          <div className="mt-5 space-y-2">
+            {knowledge.slice(0, 4).map((item) => (
+              <div key={item.id} className="rounded-2xl bg-slate-50 p-3 text-sm">
+                <p className="font-black text-slate-900">{item.title}</p>
+                <p className="line-clamp-2 text-slate-500">{item.content}</p>
+              </div>
+            ))}
+          </div>
+        </form>
       </section>
 
       <section className="mt-8 grid gap-6 lg:grid-cols-3">

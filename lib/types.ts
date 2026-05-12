@@ -22,6 +22,19 @@ export type AgendaEvent = {
   tags: { tag: Tag }[];
 };
 
+export type ChatKnowledge = {
+  id: string;
+  title: string;
+  content: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ChatAnswer = {
+  answer: string;
+  source: ChatKnowledge | null;
+};
+
 export type ReportPoint = {
   label: string;
   value: number;

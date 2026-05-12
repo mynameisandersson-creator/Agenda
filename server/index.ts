@@ -17,6 +17,15 @@ app.use(helmet({ contentSecurityPolicy: false }));
 app.use(cors({ origin: process.env.CORS_ORIGIN || true }));
 app.use(express.json());
 
+const chatKnowledgeSchema = z.object({
+  title: z.string().min(3),
+  content: z.string().min(10)
+});
+
+const chatMessageSchema = z.object({
+  message: z.string().min(2)
+});
+
 const eventSchema = z.object({
   title: z.string().min(3),
   description: z.string().min(3),
@@ -151,6 +160,66 @@ app.delete('/api/events/:id', async (req, res, nextMiddleware) => {
   try {
     await prisma.event.delete({ where: { id: req.params.id } });
     res.status(204).send();
+  } catch (error) {
+    nextMiddleware(error);
+  }
+});
+
+
+app.get('/api/chat/knowledge', async (_req, res, nextMiddleware) => {
+  try {
+    const knowledge = await prisma.chatKnowledge.findMany({ orderBy: { updatedAt: 'desc' } });
+    res.json(knowledge);
+  } catch (error) {
+    nextMiddleware(error);
+  }
+});
+
+app.post('/api/chat/knowledge', async (req, res, nextMiddleware) => {
+  try {
+    const data = chatKnowledgeSchema.parse(req.body);
+    const knowledge = await prisma.chatKnowledge.create({ data });
+    res.status(201).json(knowledge);
+  } catch (error) {
+    nextMiddleware(error);
+  }
+});
+
+app.post('/api/chat/message', async (req, res, nextMiddleware) => {
+  try {
+    const { message } = chatMessageSchema.parse(req.body);
+    const normalizedMessage = message.toLowerCase();
+    const words = normalizedMessage
+      .split(/\W+/)
+      .filter((word) => word.length > 3)
+      .slice(0, 8);
+
+    const [knowledge, events] = await Promise.all([
+      prisma.chatKnowledge.findMany({ orderBy: { updatedAt: 'desc' }, take: 50 }),
+      prisma.event.findMany({ orderBy: { start: 'asc' }, take: 20 })
+    ]);
+
+    const matchedKnowledge = knowledge.find((item) => {
+      const searchableText = `${item.title} ${item.content}`.toLowerCase();
+      return words.some((word) => searchableText.includes(word));
+    });
+
+    const scheduleSummary = events.length
+      ? `Tienes ${events.length} tareas registradas. La próxima es "${events[0].title}" el ${events[0].start.toISOString().slice(0, 10)}.`
+      : 'Todavía no tienes tareas registradas en la agenda.';
+
+    if (matchedKnowledge) {
+      res.json({
+        answer: `Según lo que me enseñaste en "${matchedKnowledge.title}": ${matchedKnowledge.content}\n\nResumen de agenda: ${scheduleSummary}`,
+        source: matchedKnowledge
+      });
+      return;
+    }
+
+    res.json({
+      answer: `Aún no tengo una respuesta entrenada para esa pregunta. Puedes alimentarme desde el módulo "Entrenar chatbot" agregando un título y contenido.\n\nResumen de agenda: ${scheduleSummary}`,
+      source: null
+    });
   } catch (error) {
     nextMiddleware(error);
   }

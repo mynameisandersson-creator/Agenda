@@ -40,6 +40,14 @@ model EventTag {
   @@id([eventId, tagId])
 }
 
+model ChatKnowledge {
+  id        String   @id @default(cuid())
+  title     String
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 enum Category {
   WORK
   PERSONAL

@@ -1,4 +1,4 @@
-import type { AgendaEvent, Reports, Tag } from './types';
+import type { AgendaEvent, ChatAnswer, ChatKnowledge, Reports, Tag } from './types';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
 
@@ -57,5 +57,23 @@ export function createTag(payload: { name: string; color: string }) {
   return request<Tag>('/tags', {
     method: 'POST',
     body: JSON.stringify(payload)
+  });
+}
+
+export function getChatKnowledge() {
+  return request<ChatKnowledge[]>('/chat/knowledge');
+}
+
+export function createChatKnowledge(payload: { title: string; content: string }) {
+  return request<ChatKnowledge>('/chat/knowledge', {
+    method: 'POST',
+    body: JSON.stringify(payload)
+  });
+}
+
+export function sendChatMessage(message: string) {
+  return request<ChatAnswer>('/chat/message', {
+    method: 'POST',
+    body: JSON.stringify({ message })
   });
 }

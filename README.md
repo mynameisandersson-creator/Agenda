@@ -16,8 +16,10 @@ Aplicación full stack para organizar la semana, crear eventos actuales y futuro
 - Fecha actual visible y reloj en vivo con hora, minutos y segundos.
 - Creación, modificación y eliminación de tareas con título, descripción, inicio, fin, categoría, prioridad, estado, ubicación, imagen y etiquetas.
 - Modal de detalles al presionar una cuadrícula del calendario o una tarea existente; se puede cerrar sin guardar.
+- Calendario visual simplificado: muestra `−` si el día no tiene tareas y `+` si contiene una o más tareas.
 - Etiquetas recomendadas y opción para crear etiquetas personalizadas con color.
 - Corrección automática básica de escritura en español para campos de texto comunes.
+- Chatbot local entrenable con un módulo para alimentar conocimiento propio de la agenda.
 - API REST para eventos, etiquetas, salud del servicio y reportes.
 - Endpoint `/api/health` que verifica también la conexión real con la base de datos.
 - Reportes visuales:
@@ -25,6 +27,10 @@ Aplicación full stack para organizar la semana, crear eventos actuales y futuro
   - Barras de horas por prioridad.
   - Línea de eventos para los próximos 7 días.
   - Tabla ejecutiva con todos los eventos.
+
+## Documentación para estudiar el código
+
+- Lee `docs/CODE_WALKTHROUGH.md` para una explicación por módulos y una guía de transcripción manual del proyecto.
 
 ## Instalación local conectada a base de datos
 
@@ -136,11 +142,12 @@ railway run npm run db:seed
 
 ## Uso de la agenda
 
-- Presiona cualquier cuadrícula del calendario mensual para abrir el modal y crear una nueva tarea en esa fecha.
+- Presiona cualquier cuadrícula del calendario mensual para abrir el modal y crear una nueva tarea en esa fecha. Visualmente verás `−` cuando el día esté vacío y `+` cuando ya tenga tareas.
 - Presiona una tarea existente en el calendario, la tabla o la lista de próximas tareas para abrir sus detalles.
 - Dentro del modal puedes modificar datos, eliminar la tarea, cerrar sin cambios, subir una imagen o pegar una URL de imagen.
 - Puedes seleccionar etiquetas existentes, usar recomendaciones o crear una etiqueta propia con un color personalizado.
 - Los campos de texto corrigen automáticamente espacios, mayúscula inicial y palabras frecuentes como `manana` → `mañana` o `reunion` → `reunión`.
+- En la sección del chatbot puedes preguntar y también alimentar conocimiento nuevo desde el formulario "Entrenar chatbot".
 
 ## Scripts útiles
 

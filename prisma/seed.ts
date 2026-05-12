@@ -20,6 +20,7 @@ function nextDate(dayOffset: number, hour: number, minutes = 0) {
 
 async function main() {
   await prisma.eventTag.deleteMany();
+  await prisma.chatKnowledge.deleteMany();
   await prisma.event.deleteMany();
   await prisma.tag.deleteMany();
 
@@ -101,6 +102,23 @@ async function main() {
       tagNames: ['Familia']
     }
   ];
+
+  await prisma.chatKnowledge.createMany({
+    data: [
+      {
+        title: 'Manual de uso rápido',
+        content: 'Puedes crear tareas presionando una cuadrícula del calendario mensual. Usa la tabla o próximas tareas para abrir, modificar o eliminar tareas existentes.'
+      },
+      {
+        title: 'Reglas de etiquetas',
+        content: 'Las etiquetas sirven para clasificar tareas. Puedes usar etiquetas recomendadas como Urgente, Reunión y Proyecto, o crear tus propias etiquetas con color.'
+      },
+      {
+        title: 'Reportes de productividad',
+        content: 'Los reportes muestran tareas por categoría, horas por prioridad y actividad en los próximos siete días para analizar la organización semanal.'
+      }
+    ]
+  });
 
   for (const event of events) {
     const selectedTags = tags.filter((tag) => event.tagNames.includes(tag.name));
