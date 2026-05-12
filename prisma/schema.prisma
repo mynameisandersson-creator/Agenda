@@ -1,0 +1,63 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Event {
+  id          String        @id @default(cuid())
+  title       String
+  description String
+  start       DateTime
+  end         DateTime
+  category    Category
+  priority    Priority      @default(MEDIUM)
+  status      EventStatus   @default(PLANNED)
+  location    String?
+  tags        EventTag[]
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+}
+
+model Tag {
+  id        String     @id @default(cuid())
+  name      String     @unique
+  color     String
+  events    EventTag[]
+  createdAt DateTime   @default(now())
+}
+
+model EventTag {
+  eventId String
+  tagId   String
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  tag     Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([eventId, tagId])
+}
+
+enum Category {
+  WORK
+  PERSONAL
+  STUDY
+  HEALTH
+  FINANCE
+  FAMILY
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum EventStatus {
+  PLANNED
+  IN_PROGRESS
+  DONE
+  CANCELLED
+}
