@@ -18,6 +18,7 @@ export type AgendaEvent = {
   priority: Priority;
   status: EventStatus;
   location?: string | null;
+  imageUrl?: string | null;
   tags: { tag: Tag }[];
 };
 

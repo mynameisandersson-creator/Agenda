@@ -12,10 +12,12 @@ Aplicación full stack para organizar la semana, crear eventos actuales y futuro
 
 ## Funcionalidades
 
-- Vista semanal limpia, organizada y responsive.
-- Fecha actual visible y soporte para eventos futuros.
-- Creación de eventos con título, descripción, inicio, fin, categoría, prioridad, estado, ubicación y etiquetas.
-- Etiquetas con colores para clasificar compromisos.
+- Vista mensual limpia, organizada y responsive desde el inicio hasta el fin de mes.
+- Fecha actual visible y reloj en vivo con hora, minutos y segundos.
+- Creación, modificación y eliminación de tareas con título, descripción, inicio, fin, categoría, prioridad, estado, ubicación, imagen y etiquetas.
+- Modal de detalles al presionar una cuadrícula del calendario o una tarea existente; se puede cerrar sin guardar.
+- Etiquetas recomendadas y opción para crear etiquetas personalizadas con color.
+- Corrección automática básica de escritura en español para campos de texto comunes.
 - API REST para eventos, etiquetas, salud del servicio y reportes.
 - Endpoint `/api/health` que verifica también la conexión real con la base de datos.
 - Reportes visuales:
@@ -131,6 +133,14 @@ npm run railway:start
 ```bash
 railway run npm run db:seed
 ```
+
+## Uso de la agenda
+
+- Presiona cualquier cuadrícula del calendario mensual para abrir el modal y crear una nueva tarea en esa fecha.
+- Presiona una tarea existente en el calendario, la tabla o la lista de próximas tareas para abrir sus detalles.
+- Dentro del modal puedes modificar datos, eliminar la tarea, cerrar sin cambios, subir una imagen o pegar una URL de imagen.
+- Puedes seleccionar etiquetas existentes, usar recomendaciones o crear una etiqueta propia con un color personalizado.
+- Los campos de texto corrigen automáticamente espacios, mayúscula inicial y palabras frecuentes como `manana` → `mañana` o `reunion` → `reunión`.
 
 ## Scripts útiles
 

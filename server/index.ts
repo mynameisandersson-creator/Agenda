@@ -14,7 +14,7 @@ const nextApp = isProduction ? next({ dev: false, dir: process.cwd() }) : null;
 const nextHandler = nextApp?.getRequestHandler();
 
 app.use(helmet({ contentSecurityPolicy: false }));
-app.use(cors({ origin: process.env.CORS_ORIGIN ?? true }));
+app.use(cors({ origin: process.env.CORS_ORIGIN || true }));
 app.use(express.json());
 
 const eventSchema = z.object({
@@ -26,6 +26,7 @@ const eventSchema = z.object({
   priority: z.nativeEnum(Priority),
   status: z.nativeEnum(EventStatus),
   location: z.string().optional().nullable(),
+  imageUrl: z.string().optional().nullable(),
   tagIds: z.array(z.string()).default([])
 });
 
@@ -104,6 +105,7 @@ app.post('/api/events', async (req, res, nextMiddleware) => {
         priority: data.priority,
         status: data.status,
         location: data.location,
+        imageUrl: data.imageUrl,
         tags: { create: data.tagIds.map((tagId) => ({ tag: { connect: { id: tagId } } })) }
       },
       include: { tags: { include: { tag: true } } }

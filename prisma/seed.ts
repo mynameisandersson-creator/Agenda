@@ -37,6 +37,7 @@ async function main() {
       priority: Priority.HIGH,
       status: EventStatus.IN_PROGRESS,
       location: 'Sala virtual',
+      imageUrl: 'https://images.unsplash.com/photo-1557804506-669a67965ba0?auto=format&fit=crop&w=900&q=80',
       tagNames: ['Estrategia']
     },
     {
@@ -48,6 +49,7 @@ async function main() {
       priority: Priority.CRITICAL,
       status: EventStatus.PLANNED,
       location: 'Google Meet',
+      imageUrl: 'https://images.unsplash.com/photo-1551836022-d5d88e9218df?auto=format&fit=crop&w=900&q=80',
       tagNames: ['Cliente', 'Estrategia']
     },
     {
@@ -59,6 +61,7 @@ async function main() {
       priority: Priority.MEDIUM,
       status: EventStatus.PLANNED,
       location: 'Gimnasio',
+      imageUrl: null,
       tagNames: ['Salud']
     },
     {
@@ -70,6 +73,7 @@ async function main() {
       priority: Priority.HIGH,
       status: EventStatus.PLANNED,
       location: 'Oficina',
+      imageUrl: null,
       tagNames: ['Aprendizaje']
     },
     {
@@ -81,6 +85,7 @@ async function main() {
       priority: Priority.MEDIUM,
       status: EventStatus.PLANNED,
       location: 'Casa',
+      imageUrl: null,
       tagNames: ['Finanzas']
     },
     {
@@ -92,6 +97,7 @@ async function main() {
       priority: Priority.LOW,
       status: EventStatus.PLANNED,
       location: 'Restaurante',
+      imageUrl: null,
       tagNames: ['Familia']
     }
   ];
@@ -108,6 +114,7 @@ async function main() {
         priority: event.priority,
         status: event.status,
         location: event.location,
+        imageUrl: event.imageUrl,
         tags: {
           create: selectedTags.map((tag) => ({ tag: { connect: { id: tag.id } } }))
         }

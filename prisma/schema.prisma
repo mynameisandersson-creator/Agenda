@@ -17,6 +17,7 @@ model Event {
   priority    Priority      @default(MEDIUM)
   status      EventStatus   @default(PLANNED)
   location    String?
+  imageUrl    String?
   tags        EventTag[]
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt

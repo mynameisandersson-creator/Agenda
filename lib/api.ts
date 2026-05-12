@@ -16,6 +16,10 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     throw new Error(`Error ${response.status}: ${response.statusText}`);
   }
 
+  if (response.status === 204) {
+    return undefined as T;
+  }
+
   return response.json() as Promise<T>;
 }
 
@@ -33,6 +37,24 @@ export function getReports() {
 
 export function createEvent(payload: unknown) {
   return request<AgendaEvent>('/events', {
+    method: 'POST',
+    body: JSON.stringify(payload)
+  });
+}
+
+export function updateEvent(id: string, payload: unknown) {
+  return request<AgendaEvent>(`/events/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(payload)
+  });
+}
+
+export function deleteEvent(id: string) {
+  return request<void>(`/events/${id}`, { method: 'DELETE' });
+}
+
+export function createTag(payload: { name: string; color: string }) {
+  return request<Tag>('/tags', {
     method: 'POST',
     body: JSON.stringify(payload)
   });
