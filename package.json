@@ -8,13 +8,17 @@
     "dev:web": "next dev -p 3000",
     "dev:api": "tsx watch server/index.ts",
     "build": "prisma generate && next build && tsc -p tsconfig.server.json",
-    "start": "node dist/server/index.js",
+    "start": "NODE_ENV=production node dist/server/index.js",
     "start:web": "next start -p 3000",
     "start:api": "node dist/server/index.js",
     "lint": "next lint",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
+    "db:migrate": "prisma migrate deploy",
     "db:seed": "tsx prisma/seed.ts",
+    "db:studio": "prisma studio",
+    "railway:build": "prisma generate && prisma migrate deploy && next build && tsc -p tsconfig.server.json",
+    "railway:start": "NODE_ENV=production node dist/server/index.js",
     "postinstall": "prisma generate"
   },
   "dependencies": {

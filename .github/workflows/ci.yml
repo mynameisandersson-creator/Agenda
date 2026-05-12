@@ -8,6 +8,24 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: agenda_profesional
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/agenda_profesional?schema=public
+      NEXT_PUBLIC_API_URL: /api
+      API_PROXY_URL: http://localhost:4000
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -17,12 +35,5 @@ jobs:
           node-version: 20
       - name: Install dependencies
         run: npm install
-      - name: Prepare database
-        run: npm run db:push
-        env:
-          DATABASE_URL: file:./dev.db
       - name: Build
-        run: npm run build
-        env:
-          DATABASE_URL: file:./dev.db
-          NEXT_PUBLIC_API_URL: http://localhost:4000/api
+        run: npm run railway:build

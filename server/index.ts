@@ -2,15 +2,19 @@ import 'dotenv/config';
 import cors from 'cors';
 import express from 'express';
 import helmet from 'helmet';
+import next from 'next';
 import { PrismaClient, Category, EventStatus, Priority } from '@prisma/client';
 import { z } from 'zod';
 
 const prisma = new PrismaClient();
 const app = express();
 const port = Number(process.env.PORT ?? 4000);
+const isProduction = process.env.NODE_ENV === 'production';
+const nextApp = isProduction ? next({ dev: false, dir: process.cwd() }) : null;
+const nextHandler = nextApp?.getRequestHandler();
 
-app.use(helmet());
-app.use(cors());
+app.use(helmet({ contentSecurityPolicy: false }));
+app.use(cors({ origin: process.env.CORS_ORIGIN ?? true }));
 app.use(express.json());
 
 const eventSchema = z.object({
@@ -25,31 +29,41 @@ const eventSchema = z.object({
   tagIds: z.array(z.string()).default([])
 });
 
-app.get('/api/health', (_req, res) => {
-  res.json({ ok: true, service: 'agenda-api', timestamp: new Date().toISOString() });
+app.get('/api/health', async (_req, res, nextMiddleware) => {
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    res.json({
+      ok: true,
+      service: 'agenda-api',
+      database: 'connected',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    nextMiddleware(error);
+  }
 });
 
-app.get('/api/tags', async (_req, res, next) => {
+app.get('/api/tags', async (_req, res, nextMiddleware) => {
   try {
     const tags = await prisma.tag.findMany({ orderBy: { name: 'asc' } });
     res.json(tags);
   } catch (error) {
-    next(error);
+    nextMiddleware(error);
   }
 });
 
-app.post('/api/tags', async (req, res, next) => {
+app.post('/api/tags', async (req, res, nextMiddleware) => {
   try {
     const schema = z.object({ name: z.string().min(2), color: z.string().regex(/^#[0-9a-fA-F]{6}$/) });
     const data = schema.parse(req.body);
     const tag = await prisma.tag.create({ data });
     res.status(201).json(tag);
   } catch (error) {
-    next(error);
+    nextMiddleware(error);
   }
 });
 
-app.get('/api/events', async (req, res, next) => {
+app.get('/api/events', async (req, res, nextMiddleware) => {
   try {
     const start = typeof req.query.start === 'string' ? new Date(req.query.start) : undefined;
     const end = typeof req.query.end === 'string' ? new Date(req.query.end) : undefined;
@@ -69,11 +83,11 @@ app.get('/api/events', async (req, res, next) => {
     });
     res.json(events);
   } catch (error) {
-    next(error);
+    nextMiddleware(error);
   }
 });
 
-app.post('/api/events', async (req, res, next) => {
+app.post('/api/events', async (req, res, nextMiddleware) => {
   try {
     const data = eventSchema.parse(req.body);
     if (new Date(data.end) <= new Date(data.start)) {
@@ -96,14 +110,18 @@ app.post('/api/events', async (req, res, next) => {
     });
     res.status(201).json(event);
   } catch (error) {
-    next(error);
+    nextMiddleware(error);
   }
 });
 
-app.patch('/api/events/:id', async (req, res, next) => {
+app.patch('/api/events/:id', async (req, res, nextMiddleware) => {
   try {
     const data = eventSchema.partial().parse(req.body);
     const { tagIds, start, end, ...eventData } = data;
+    if (start && end && new Date(end) <= new Date(start)) {
+      res.status(400).json({ message: 'La fecha final debe ser posterior a la fecha inicial.' });
+      return;
+    }
     const event = await prisma.event.update({
       where: { id: req.params.id },
       data: {
@@ -123,20 +141,20 @@ app.patch('/api/events/:id', async (req, res, next) => {
     });
     res.json(event);
   } catch (error) {
-    next(error);
+    nextMiddleware(error);
   }
 });
 
-app.delete('/api/events/:id', async (req, res, next) => {
+app.delete('/api/events/:id', async (req, res, nextMiddleware) => {
   try {
     await prisma.event.delete({ where: { id: req.params.id } });
     res.status(204).send();
   } catch (error) {
-    next(error);
+    nextMiddleware(error);
   }
 });
 
-app.get('/api/reports', async (_req, res, next) => {
+app.get('/api/reports', async (_req, res, nextMiddleware) => {
   try {
     const events = await prisma.event.findMany({ include: { tags: { include: { tag: true } } } });
     const byCategory = Object.values(Category).map((category) => ({
@@ -167,7 +185,7 @@ app.get('/api/reports', async (_req, res, next) => {
     }));
     res.json({ byCategory, byStatus, byDay, hoursByPriority, totalEvents: events.length });
   } catch (error) {
-    next(error);
+    nextMiddleware(error);
   }
 });
 
@@ -180,6 +198,15 @@ app.use((error: unknown, _req: express.Request, res: express.Response, _next: ex
   res.status(500).json({ message: 'Error interno del servidor' });
 });
 
-app.listen(port, () => {
-  console.log(`Agenda API listening on http://localhost:${port}`);
-});
+async function startServer() {
+  if (nextApp && nextHandler) {
+    await nextApp.prepare();
+    app.all('*', (req, res) => nextHandler(req, res));
+  }
+
+  app.listen(port, () => {
+    console.log(`Agenda app listening on http://localhost:${port}`);
+  });
+}
+
+void startServer();
